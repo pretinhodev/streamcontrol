@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- UserProfile Validation ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email']) 
+        && data.uid is string 
+        && data.email is string 
+        && data.email.size() < 256
+        && (data.get('displayName', '') is string)
+        && (data.get('photoURL', '') is string);
+    }
+
+    // --- Connection Validation ---
+    function isValidConnection(data) {
+      return data.keys().hasAll(['id', 'type', 'username'])
+        && data.id is string
+        && data.type in ['twitch', 'youtube', 'kick', 'tiktok', 'x', 'manual']
+        && data.username is string
+        && (data.get('name', '') is string)
+        && (data.get('avatar', '') is string)
+        && (data.get('status', '') is string);
+    }
+
+    // --- Routes ---
+    match /users/{uid} {
+      allow get: if isOwner(uid);
+      allow create: if isOwner(uid) && isValidUserProfile(incoming()) && incoming().uid == uid;
+      allow update: if isOwner(uid) && isValidUserProfile(incoming()) 
+        && incoming().uid == existing().uid
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'lastLogin', 'email']);
+    }
+
+    match /users/{uid}/connections/{connectionId} {
+      allow list, get: if isOwner(uid);
+      allow create: if isOwner(uid) && isValidId(connectionId) && isValidConnection(incoming());
+      allow update: if isOwner(uid) && isValidConnection(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'accessToken', 'refreshToken', 'avatar', 'name', 'stats']);
+      allow delete: if isOwner(uid);
+    }
+  }
+}
