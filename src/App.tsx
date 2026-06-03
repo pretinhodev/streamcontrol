@@ -109,7 +109,7 @@ export default function App() {
   const [streamKey, setStreamKey] = useState("");
 
   // Integration States
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => localStorage.getItem("livedeck_alert_sound") !== "false");
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => (localStorage.getItem("streamcontrol_alert_sound") || localStorage.getItem("livedeck_alert_sound")) !== "false");
   const [currentAlert, setCurrentAlert] = useState<StreamEvent | null>(null);
 
   const [events, setEvents] = useState<StreamEvent[]>([]);
@@ -721,7 +721,7 @@ export default function App() {
                       onClick={() => {
                         const next = !soundEnabled;
                         setSoundEnabled(next);
-                        localStorage.setItem("livedeck_alert_sound", String(next));
+                        localStorage.setItem("streamcontrol_alert_sound", String(next));
                       }}
                       className={cn(
                         "p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all cursor-pointer",
@@ -1086,16 +1086,6 @@ export default function App() {
                       onClick={() => handleOAuthConnect('kick')} 
                     />
                     <PlatformSelectButton 
-                      icon={<TikTokIcon className="text-white" />} 
-                      label="TikTok" 
-                      onClick={() => handleOAuthConnect('tiktok')} 
-                    />
-                    <PlatformSelectButton 
-                      icon={<Twitter className="text-white" />} 
-                      label="X (Twitter)" 
-                      onClick={() => handleOAuthConnect('x')} 
-                    />
-                    <PlatformSelectButton 
                       icon={<Radio className="text-amber-400" />} 
                       label="Custom RTMP" 
                       onClick={() => setConfiguringPlatform('rtmp')} 
@@ -1111,8 +1101,8 @@ export default function App() {
                       Como funciona a conexão integrada?
                     </summary>
                     <div className="mt-2 text-[10px] text-[#555] leading-relaxed space-y-2 bg-[#0A0A0A] p-3 rounded-xl border border-[#262626]">
-                      <p><strong className="text-white">Kick e TikTok:</strong> Insira seu nome ou URL do canal. O painel simula o pooling de chat e estatísticas de multistream ativos em tempo real.</p>
-                      <p><strong className="text-white">Google/YouTube:</strong> Ative as credenciais OAuth 2.0 (IDs armazenadas com segurança).</p>
+                      <p><strong className="text-white">Kick e Custom RTMP:</strong> Insira seu nome ou URL do canal e o servidor correspondente. O painel simula a sincronização e logs de multistream ativos em tempo real.</p>
+                      <p><strong className="text-white">Twitch e YouTube:</strong> Utilize a conexão OAuth integrada e segura para autorizar com suas credenciais.</p>
                     </div>
                   </details>
                 </div>

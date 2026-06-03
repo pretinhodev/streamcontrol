@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "motion/react";
 import { getPresetById, ColorPreset } from "../lib/theme";
 
-interface LiveDeckLogoProps {
+interface StreamControlLogoProps {
   className?: string;
   size?: number | string;
   pulse?: boolean;
@@ -11,13 +11,13 @@ interface LiveDeckLogoProps {
   customSecondary?: string;
 }
 
-export function LiveDeckLogo({ className, size = 40, pulse = true, presetId, customPrimary, customSecondary }: LiveDeckLogoProps) {
+export function StreamControlLogo({ className, size = 40, pulse = true, presetId, customPrimary, customSecondary }: StreamControlLogoProps) {
   // Try to find preset, default to cosmic-void
   // We can look up the globally active theme if presetId is not set,
   // but let's check saved local theme so fallback is always synchronized.
-  const activePresetId = presetId || localStorage.getItem("livedeck_theme_id") || "cosmic-void";
-  const cPrim = customPrimary || localStorage.getItem("livedeck_custom_primary") || "#FF007F";
-  const cSec = customSecondary || localStorage.getItem("livedeck_custom_secondary") || "#7E00FF";
+  const activePresetId = presetId || localStorage.getItem("streamcontrol_theme_id") || "cosmic-void";
+  const cPrim = customPrimary || localStorage.getItem("streamcontrol_custom_primary") || "#FF007F";
+  const cSec = customSecondary || localStorage.getItem("streamcontrol_custom_secondary") || "#7E00FF";
   
   const preset: ColorPreset = getPresetById(activePresetId, cPrim, cSec);
 
@@ -93,7 +93,7 @@ export function LiveDeckLogo({ className, size = 40, pulse = true, presetId, cus
           </linearGradient>
         </defs>
 
-        {/* 3D Layered Ribbons forming the geometric LiveDeck "D" */}
+        {/* 3D Layered Ribbons forming the geometric Stream Control logo */}
         
         {/* Layer 1 (Backmost Layer) */}
         <motion.path

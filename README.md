@@ -1,4 +1,4 @@
-# LiveDeck - Guia de Configuração
+# Stream Control - Guia de Configuração
 
 Esta aplicação está preparada para rodar no ambiente do **AI Studio**. Para que a integração com a Twitch funcione, você precisa configurar seu App no Dashboard de Desenvolvedor da Twitch.
 
@@ -14,13 +14,15 @@ Esta aplicação está preparada para rodar no ambiente do **AI Studio**. Para q
 
 No menu **Settings** (Configurações) do AI Studio Build, adicione as seguintes Secrets (Segredos):
 
-- `TWITCH_CLIENT_ID`: Cole seu Client ID aqui.
-- `TWITCH_CLIENT_SECRET`: Cole seu Client Secret aqui.
+- `TWITCH_CLIENT_ID`: Cole seu Client ID da Twitch aqui.
+- `TWITCH_CLIENT_SECRET`: Cole seu Client Secret da Twitch aqui.
+- `KICK_CLIENT_ID`: Seu Client ID de integração para a Kick.
+- `KICK_CLIENT_SECRET`: Seu Client Secret de integração para a Kick.
 - `YOUTUBE_API_KEY`: Sua chave de API do Google Cloud com YouTube Data API v3 ativada.
 - `SESSION_SECRET`: Uma frase aleatória para segurança da sessão.
 
 ## Funcionalidades
-- **LiveDeck Remote**: Controle seu OBS diretamente do celular (troca de cenas, start/stop stream).
+- **Stream Control Remote**: Controle seu OBS diretamente do celular (troca de cenas, start/stop stream).
 - **Conexões Reais**: Use o botão da Twitch para logar via OAuth e puxar seu chat automaticamente.
 - **Multistream**: Adicione outras plataformas manualmente para monitorar usuários.
 - **Chat Unificado**: Centralize as mensagens de diferentes fontes em uma única aba.
@@ -28,5 +30,5 @@ No menu **Settings** (Configurações) do AI Studio Build, adicione as seguintes
 ## Uso do OBS Remote Control
 1. No OBS, vá em `Tools -> WebSocket Server Settings`.
 2. Habilite o servidor WebSockets (Porta padrão: 4455).
-3. No **LiveDeck**, vá na aba OBS, insira o IP do seu computador e a senha definida.
-4. *Dica: Se estiver usando o LiveDeck no celular, use o IP local do seu PC (ex: 192.168.1.XX).*
+3. No **Stream Control**, vá na aba OBS, insira o IP do seu computador e a senha definida.
+4. *Dica: Se estiver usando o Stream Control no celular, use o IP local do seu PC (ex: 192.168.1.XX).*

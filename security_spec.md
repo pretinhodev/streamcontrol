@@ -1,4 +1,4 @@
-# Security Specification for LiveDeck
+# Security Specification for Stream Control
 
 ## Data Invariants
 - A UserProfile can only be created/read/updated by the user with the matching UID.

@@ -17,7 +17,7 @@ async function startServer() {
 
   // Session configuration for OAuth
   app.use(session({
-    secret: process.env.SESSION_SECRET || "livedeck-secret-123",
+    secret: process.env.SESSION_SECRET || "streamcontrol-secret-123",
     resave: false,
     saveUninitialized: true,
     cookie: { secure: true, sameSite: 'none' }
@@ -137,22 +137,27 @@ async function startServer() {
 
   // --- Kick OAuth Mock Routes ---
   app.get("/api/auth/kick/url", (req, res) => {
+    const clientId = process.env.KICK_CLIENT_ID;
+    if (!clientId) {
+      return res.status(400).json({ error: "KICK_CLIENT_ID não configurado. Adicione KICK_CLIENT_ID e KICK_CLIENT_SECRET no seu arquivo .env ou Secrets do AI Studio." });
+    }
     const host = req.get('host');
     const protocol = req.protocol === 'http' && host?.includes('localhost') ? 'http' : 'https';
     const baseUrl = process.env.APP_URL || `${protocol}://${host}`;
-    res.json({ url: `${baseUrl}/auth/kick` });
+    res.json({ url: `${baseUrl}/auth/kick?client_id=${encodeURIComponent(clientId)}` });
   });
 
   app.get("/auth/kick", (req, res) => {
+    const clientId = (req.query.client_id as string) || "Não configurado";
     res.send(`
       <!DOCTYPE html>
       <html lang="pt-BR">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Conectar Kick à LiveDeck</title>
+        <title>Conectar Kick ao Stream Control</title>
         <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700;800;900&display=swap" rel="stylesheet">
         <style>
           body { font-family: 'Inter', sans-serif; background-color: #0b0e11; }
         </style>
@@ -163,7 +168,7 @@ async function startServer() {
           
           <div class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-1.5">
-              <span class="text-white font-black text-xl tracking-tight">Live<span class="text-[#53FC18]">Deck</span></span>
+              <span class="text-white font-black text-xl tracking-tight">Stream<span class="text-[#53FC18]"> Control</span></span>
               <span class="bg-[#24262b] text-[9px] font-mono font-bold text-neutral-400 px-1.5 py-0.5 rounded-full">v2_api</span>
             </div>
             <span class="bg-[#53FC18]/10 text-[#53FC18] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-[#53FC18]/20">Seguro</span>
@@ -174,8 +179,11 @@ async function startServer() {
               <span>K</span>
             </div>
             <h2 class="text-lg font-black text-white">Adicionar Canal do Kick</h2>
+            <div class="text-[9px] font-mono text-neutral-400 bg-neutral-900 border border-neutral-800/60 px-3 py-1.5 rounded-lg max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">
+              Client ID: <span class="text-[#53FC18]">${clientId}</span>
+            </div>
             <p class="text-xs text-neutral-400 leading-relaxed max-w-md">
-              Autorize o <strong>LiveDeck Mobile</strong> a gerenciar alertas e integrar o feed de eventos de stream dds suas transmissões.
+              Autorize o <strong>Stream Control Mobile</strong> a gerenciar alertas e integrar o feed de eventos de stream das suas transmissões.
             </p>
           </div>
 
@@ -267,7 +275,7 @@ async function startServer() {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Conectar TikTok à LiveDeck</title>
+        <title>Conectar TikTok ao Stream Control</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
         <style>
@@ -281,7 +289,7 @@ async function startServer() {
           
           <div class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-1.5">
-              <span class="text-white font-black text-xl tracking-tight">Live<span class="text-[#FE2C55]">Deck</span></span>
+              <span class="text-white font-black text-xl tracking-tight">Stream<span class="text-[#FE2C55]"> Control</span></span>
               <span class="bg-[#1e1e1e] text-[9px] font-mono font-bold text-neutral-400 px-1.5 py-0.5 rounded-full">v2_api</span>
             </div>
             <span class="bg-[#FE2C55]/10 text-[#FE2C55] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-[#FE2C55]/20">Seguro</span>
@@ -295,7 +303,7 @@ async function startServer() {
             </div>
             <h2 class="text-lg font-black text-white">Adicionar TikTok Live</h2>
             <p class="text-xs text-neutral-400 leading-relaxed max-w-sm">
-              Autorize os serviços da <strong>LiveDeck</strong> a obter sua contagem de visualizadores e gerenciar notificações de chat online.
+              Autorize os serviços do <strong>Stream Control</strong> a obter sua contagem de visualizadores e gerenciar notificações de chat online.
             </p>
           </div>
 
@@ -386,7 +394,7 @@ async function startServer() {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Conectar X à LiveDeck</title>
+        <title>Conectar X ao Stream Control</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
         <style>
@@ -398,7 +406,7 @@ async function startServer() {
           
           <div class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-1.5">
-              <span class="text-white font-black text-xl tracking-tight">Live<span class="text-neutral-400">Deck</span></span>
+              <span class="text-white font-black text-xl tracking-tight">Stream<span class="text-neutral-400"> Control</span></span>
               <span class="bg-[#161616] text-[9px] font-mono font-bold text-neutral-500 px-1.5 py-0.5 rounded-full">v2_api</span>
             </div>
             <span class="bg-neutral-800/50 text-[#fff] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-neutral-800">Verificado</span>
@@ -408,7 +416,7 @@ async function startServer() {
             <div class="w-16 h-16 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white text-3xl font-extrabold shadow-lg">
               <span>X</span>
             </div>
-            <h2 class="text-lg font-black text-white">Autorizar LiveDeck no X</h2>
+            <h2 class="text-lg font-black text-white">Autorizar Stream Control no X</h2>
             <p class="text-xs text-neutral-400 leading-relaxed max-w-sm">
               Conecte sua conta do X para transmitir o status da sua live e alertar seus seguidores em tempo real.
             </p>
