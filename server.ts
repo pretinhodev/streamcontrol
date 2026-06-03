@@ -135,6 +135,91 @@ async function startServer() {
     res.json({ user, token, clientId });
   });
 
+  app.get("/api/twitch/stats", async (req, res) => {
+    const { userId, username, token } = req.query;
+    const clientId = process.env.TWITCH_CLIENT_ID;
+    const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+
+    if (!clientId) {
+      return res.status(400).json({ error: "TWITCH_CLIENT_ID não configurado" });
+    }
+
+    let headerToken = token || (req as any).session.twitchToken;
+
+    try {
+      if (!headerToken && clientSecret) {
+        try {
+          const tokenRes = await axios.post("https://id.twitch.tv/oauth2/token", null, {
+            params: {
+              client_id: clientId,
+              client_secret: clientSecret,
+              grant_type: "client_credentials"
+            }
+          });
+          headerToken = tokenRes.data.access_token;
+        } catch (tokErr: any) {
+          console.error("Error fetching Twitch app token:", tokErr.message);
+        }
+      }
+
+      if (!headerToken) {
+        return res.status(400).json({ error: "Nenhum token válido do Twitch encontrado para a requisição." });
+      }
+
+      let isLive = false;
+      let viewers = 0;
+      let title = "Stream Offline";
+      
+      try {
+        const streamRes = await axios.get(`https://api.twitch.tv/helix/streams`, {
+          params: userId ? { user_id: userId } : { user_login: username },
+          headers: {
+            "Client-ID": clientId,
+            "Authorization": `Bearer ${headerToken}`
+          }
+        });
+        
+        if (streamRes.data?.data?.length > 0) {
+          const streamInfo = streamRes.data.data[0];
+          isLive = streamInfo.type === "live";
+          viewers = streamInfo.viewer_count || 0;
+          title = streamInfo.title || "Live Ativa";
+        }
+      } catch (streamErr: any) {
+        console.error("Error fetching Twitch live stream:", streamErr.response?.data || streamErr.message);
+      }
+
+      let followers = 0;
+      if (userId) {
+        try {
+          const followersRes = await axios.get(`https://api.twitch.tv/helix/channels/followers`, {
+            params: { broadcaster_id: userId },
+            headers: {
+              "Client-ID": clientId,
+              "Authorization": `Bearer ${headerToken}`
+            }
+          });
+          if (followersRes.data?.total !== undefined) {
+            followers = followersRes.data.total;
+          }
+        } catch (followErr: any) {
+          console.error("Error fetching Twitch followers count:", followErr.response?.data || followErr.message);
+        }
+      }
+
+      res.json({
+        isLive,
+        viewers,
+        followers,
+        title
+      });
+
+    } catch (err: any) {
+      console.error("Twitch API Stats Error:", err.response?.data || err.message);
+      res.status(500).json({ error: "Erro ao buscar estatísticas da Twitch" });
+    }
+  });
+
   // --- Kick OAuth Mock Routes ---
   app.get("/api/auth/kick/url", (req, res) => {
     const clientId = process.env.KICK_CLIENT_ID;

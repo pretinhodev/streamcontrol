@@ -214,6 +214,25 @@ export default function App() {
             console.error(`Error fetching YouTube stats for ${conn.username}:`, err);
           }
         }
+        if (conn.type === 'twitch') {
+          try {
+            const tokenParam = conn.token ? `&token=${conn.token}` : "";
+            const res = await fetch(`/api/twitch/stats?userId=${conn.id}&username=${conn.username}${tokenParam}`);
+            if (res.ok) {
+              const data = await res.json();
+              return {
+                ...conn,
+                stats: {
+                  viewers: data.viewers || 0,
+                  followers: data.followers || 0,
+                  isLive: data.isLive || false
+                }
+              };
+            }
+          } catch (err) {
+            console.error(`Error fetching Twitch stats for ${conn.username}:`, err);
+          }
+        }
         // Add other platforms here as they are implemented
         return conn;
       }));
@@ -343,7 +362,8 @@ export default function App() {
               username: event.data.user.login,
               avatar: event.data.user.profile_image_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${event.data.user.login}`,
               status: 'connected',
-              stats: { viewers: Math.floor(Math.random() * 420) + 70, followers: Math.floor(Math.random() * 6300) + 1100, isLive: true }
+              token: event.data.token,
+              stats: { viewers: 0, followers: 0, isLive: false }
             };
           } else if (platform === 'youtube') {
             const channel = event.data.channel;
@@ -355,9 +375,9 @@ export default function App() {
               avatar: channel.snippet?.thumbnails?.default?.url || `https://api.dicebear.com/7.x/identicon/svg?seed=${channel.id}`,
               status: 'connected',
               stats: { 
-                viewers: Math.floor(Math.random() * 580) + 120, 
-                followers: parseInt(channel.statistics?.subscriberCount || "0") || Math.floor(Math.random() * 8500) + 2400, 
-                isLive: true 
+                viewers: 0, 
+                followers: parseInt(channel.statistics?.subscriberCount || "0") || 0, 
+                isLive: false 
               }
             };
           } else {
@@ -370,9 +390,9 @@ export default function App() {
               avatar: userObj.profile_image_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${userObj.username}`,
               status: 'connected',
               stats: {
-                viewers: Math.floor(Math.random() * 260) + 50,
-                followers: Math.floor(Math.random() * 4100) + 600,
-                isLive: true
+                viewers: 0,
+                followers: 0,
+                isLive: false
               }
             };
           }
@@ -404,17 +424,13 @@ export default function App() {
     const finalName = customDisplayName.trim() || defaultName;
     const finalUsername = customUsername.trim() || (user?.displayName || "user").toLowerCase().replace(/\s/g, '');
     
-    // Create connection with realistic status and starting statistics
-    const initialViewers = Math.floor(Math.random() * 320) + 40;
-    const initialFollowers = Math.floor(Math.random() * 4500) + 800;
-
     const newConn: PlatformConnection = {
       id: Math.random().toString(36).substr(2, 9),
       type,
       name: finalName,
       username: finalUsername,
       status: 'connected',
-      stats: { viewers: initialViewers, followers: initialFollowers, isLive: true }
+      stats: { viewers: 0, followers: 0, isLive: false }
     };
     
     // If RTMP and Stream key details are provided, append
@@ -504,7 +520,7 @@ export default function App() {
   const simulateAlertEvent = async (type: 'follow' | 'sub' | 'donation' | 'cheer', customUser?: string) => {
     const randomUsers = ['Tarik_Dev', 'Gabs_Stramer', 'GamerElite', 'Lia_Twitches', 'Vini_Multistream', 'Cynthia_Kick', 'X_Rider'];
     const selectedUser = customUser || randomUsers[Math.floor(Math.random() * randomUsers.length)];
-    const activePlatformList: PlatformType[] = connections.length > 0 ? connections.map(c => c.type) : ['twitch', 'youtube', 'kick'];
+    const activePlatformList: PlatformType[] = connections.length > 0 ? connections.map(c => c.type) : ['twitch', 'kick'];
     const selectedPlatform = activePlatformList[Math.floor(Math.random() * activePlatformList.length)];
     
     let detailsText = '';
@@ -1069,21 +1085,16 @@ export default function App() {
                   </div>
                 ) : (
                   /* Connection options */
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <PlatformSelectButton 
                       icon={<Twitch className="text-[#9146FF]" />} 
                       label="Twitch" 
                       onClick={() => handleOAuthConnect('twitch')} 
                     />
                     <PlatformSelectButton 
-                      icon={<Youtube className="text-red-500" />} 
-                      label="YouTube" 
-                      onClick={() => handleOAuthConnect('youtube')} 
-                    />
-                    <PlatformSelectButton 
                       icon={<KickIcon className="text-[#53FC18]" />} 
                       label="Kick" 
-                      onClick={() => handleOAuthConnect('kick')} 
+                      onClick={() => setConfiguringPlatform('kick')} 
                     />
                     <PlatformSelectButton 
                       icon={<Radio className="text-amber-400" />} 
@@ -1102,7 +1113,7 @@ export default function App() {
                     </summary>
                     <div className="mt-2 text-[10px] text-[#555] leading-relaxed space-y-2 bg-[#0A0A0A] p-3 rounded-xl border border-[#262626]">
                       <p><strong className="text-white">Kick e Custom RTMP:</strong> Insira seu nome ou URL do canal e o servidor correspondente. O painel simula a sincronização e logs de multistream ativos em tempo real.</p>
-                      <p><strong className="text-white">Twitch e YouTube:</strong> Utilize a conexão OAuth integrada e segura para autorizar com suas credenciais.</p>
+                      <p><strong className="text-white">Twitch:</strong> Utilize a conexão OAuth integrada e segura para autorizar com suas credenciais.</p>
                     </div>
                   </details>
                 </div>

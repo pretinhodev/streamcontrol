@@ -12,6 +12,7 @@ export interface PlatformConnection {
     followers: number;
     isLive: boolean;
   };
+  token?: string;
 }
 
 export interface StreamStats {
