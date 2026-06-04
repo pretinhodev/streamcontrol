@@ -8,6 +8,7 @@ import axios from "axios";
 
 async function startServer() {
   const app = express();
+  app.set("trust proxy", 1);
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: { origin: "*" },
@@ -220,16 +221,110 @@ async function startServer() {
     }
   });
 
-  // --- Kick OAuth Mock Routes ---
+  // --- Kick OAuth Routes ---
   app.get("/api/auth/kick/url", (req, res) => {
     const clientId = process.env.KICK_CLIENT_ID;
-    if (!clientId) {
-      return res.status(400).json({ error: "KICK_CLIENT_ID não configurado. Adicione KICK_CLIENT_ID e KICK_CLIENT_SECRET no seu arquivo .env ou Secrets do AI Studio." });
-    }
     const host = req.get('host');
     const protocol = req.protocol === 'http' && host?.includes('localhost') ? 'http' : 'https';
     const baseUrl = process.env.APP_URL || `${protocol}://${host}`;
-    res.json({ url: `${baseUrl}/auth/kick?client_id=${encodeURIComponent(clientId)}` });
+    
+    // Se o cliente configurou um KICK_CLIENT_ID real (não nulo e diferente de temporário)
+    if (clientId && clientId !== "kick_mock_client_id_temp" && clientId.trim() !== "") {
+      const redirectUri = `${baseUrl}/auth/kick/callback`;
+      const scopes = "user.read channel.read"; // escopos padrão da API de parceiros do id.kick.com
+      const url = `https://id.kick.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}`;
+      return res.json({ url });
+    }
+    
+    // Fallback de Sandbox/Simulação quando as chaves de produção ainda não estão ativas
+    res.json({ url: `${baseUrl}/auth/kick?client_id=kick_simulated_client_id` });
+  });
+
+  // Callback oficial para id.kick.com
+  app.get("/auth/kick/callback", async (req, res) => {
+    const { code } = req.query;
+    const clientId = process.env.KICK_CLIENT_ID;
+    const clientSecret = process.env.KICK_CLIENT_SECRET;
+    const host = req.get('host');
+    const protocol = req.protocol === 'http' && host?.includes('localhost') ? 'http' : 'https';
+    const baseUrl = process.env.APP_URL || `${protocol}://${host}`;
+    const redirectUri = `${baseUrl}/auth/kick/callback`;
+
+    try {
+      const tokenParams = new URLSearchParams();
+      tokenParams.append("client_id", clientId || "");
+      tokenParams.append("client_secret", clientSecret || "");
+      tokenParams.append("code", (code as string) || "");
+      tokenParams.append("grant_type", "authorization_code");
+      tokenParams.append("redirect_uri", redirectUri);
+
+      // Requerimento POST seguro de troca de código por código de autorização do id.kick.com usando x-www-form-urlencoded padrão do OAuth 2.0 / 2.1
+      const response = await axios.post("https://id.kick.com/oauth/token", tokenParams, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json"
+        }
+      });
+
+      const { access_token } = response.data;
+
+      // Chama a API pública de informações do usuário logado via id.kick.com
+      const userRes = await axios.get("https://api.kick.com/public/v1/users/me", {
+        headers: {
+          "Authorization": `Bearer ${access_token}`,
+          "Accept": "application/json"
+        }
+      });
+
+      const userData = userRes.data;
+      
+      const userPayload = {
+        id: userData.id || 'kick_' + Math.random().toString(36).substr(2, 9),
+        username: userData.username || userData.slug || 'kick_streamer',
+        display_name: userData.username || userData.slug || 'Kick Streamer',
+        profile_image_url: userData.profile_picture || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + (userData.username || 'kick')
+      };
+
+      res.send(`
+        <html>
+          <body>
+            <script>
+              window.opener.postMessage({ 
+                type: 'KICK_AUTH_SUCCESS', 
+                token: '${access_token}',
+                user: ${JSON.stringify(userPayload)}
+              }, '*');
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
+    } catch (error: any) {
+      const statusStr = error.response ? `HTTP ${error.response.status}` : "Sem Resposta";
+      const errorDetail = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      console.error("Erro na autenticação Kick real:", errorDetail);
+      res.status(500).send(`
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Erro de Conexão - Kick</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+          </head>
+          <body class="bg-[#0b0e11] text-neutral-300 flex items-center justify-center min-h-screen font-sans">
+            <div class="max-w-md p-8 bg-[#191b1f] border border-neutral-800 rounded-3xl text-center shadow-xl">
+              <h2 class="text-xl font-black text-red-500 mb-4">Falha no id.kick.com 🔌</h2>
+              <p class="text-xs text-neutral-400 mb-6">O servidor oficial da Kick rejeitou a requisição do OAuth. Verifique se o seu CLIENT_ID, CLIENT_SECRET, ou a Redirect URI mapeada estão corretos.</p>
+              <div class="text-[11px] text-red-400 font-mono mb-6 bg-red-950/20 p-4 rounded-2xl border border-red-900/30 text-left overflow-auto max-h-40 break-words space-y-1">
+                <div><strong class="text-white">Status:</strong> ${statusStr}</div>
+                <div><strong class="text-white">Detalhes:</strong> ${errorDetail}</div>
+                <div><strong class="text-white">Redirect URI:</strong> ${redirectUri}</div>
+              </div>
+              <button onclick="window.close()" class="px-5 py-3 bg-neutral-800/80 text-white rounded-xl text-xs font-bold hover:bg-neutral-700 transition-all border border-neutral-700/30">Fechar Janela</button>
+            </div>
+          </body>
+        </html>
+      `);
+    }
   });
 
   app.get("/auth/kick", (req, res) => {
@@ -247,7 +342,15 @@ async function startServer() {
           body { font-family: 'Inter', sans-serif; background-color: #0b0e11; }
         </style>
       </head>
-      <body class="flex flex-col items-center justify-center min-h-screen text-neutral-200 px-4">
+      <body class="flex flex-col items-center justify-center min-h-screen text-neutral-200 px-4 py-8">
+        <!-- Banner Informativo da Solução id.kick.com -->
+        <div class="w-full max-w-md mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] p-3.5 rounded-2xl flex flex-col gap-1 shadow-lg leading-relaxed">
+          <div class="font-bold flex items-center gap-1 text-[12px]">
+            <span>⚡ Modo Sandbox (id.kick.com)</span>
+          </div>
+          <p class="opacity-80">KICK_CLIENT_ID não configurado nos Secrets do AI Studio. O painel iniciou a simulação do id.kick.com de forma totalmente interativa para você validar os fluxos em tempo de desenvolvimento!</p>
+        </div>
+
         <div class="w-full max-w-md bg-[#191b1f] border border-neutral-800 rounded-[32px] p-7 shadow-2xl relative overflow-hidden">
           <div class="absolute -top-12 -right-12 w-36 h-36 bg-[#53FC18]/10 rounded-full blur-3xl"></div>
           

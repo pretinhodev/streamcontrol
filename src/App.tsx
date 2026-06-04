@@ -1015,6 +1015,20 @@ export default function App() {
                             className="w-full bg-[#111118] border border-white/5 rounded-xl p-3 text-xs text-neutral-300 focus:outline-none focus:border-theme-primary font-sans"
                           />
                         </div>
+
+                        {configuringPlatform === 'kick' && (
+                          <div className="p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl space-y-2.5 mt-2">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-[#53FC18] block font-mono">Conexão Segura OAuth</span>
+                            <p className="text-[9px] text-[#888] leading-relaxed">Você também pode fazer a autenticação oficial mockando a autorização segura de parceiros.</p>
+                            <button
+                              type="button"
+                              onClick={() => handleOAuthConnect('kick')}
+                              className="w-full py-2.5 px-3 rounded-xl bg-[#53FC18] hover:bg-[#4ddf15] text-[#05050A] text-[10px] font-black tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-[#53FC18]/10 font-sans"
+                            >
+                              <span>⚡ Autenticar com id.kick.com</span>
+                            </button>
+                          </div>
+                        )}
                       </>
                     )}
 
@@ -1112,8 +1126,8 @@ export default function App() {
                       Como funciona a conexão integrada?
                     </summary>
                     <div className="mt-2 text-[10px] text-[#555] leading-relaxed space-y-2 bg-[#0A0A0A] p-3 rounded-xl border border-[#262626]">
-                      <p><strong className="text-white">Kick e Custom RTMP:</strong> Insira seu nome ou URL do canal e o servidor correspondente. O painel simula a sincronização e logs de multistream ativos em tempo real.</p>
-                      <p><strong className="text-white">Twitch:</strong> Utilize a conexão OAuth integrada e segura para autorizar com suas credenciais.</p>
+                      <p><strong className="text-white">Custom RTMP:</strong> Insira seu nome ou URL do canal e o servidor correspondente. O painel simula a sincronização e logs de multistream ativos em tempo real.</p>
+                      <p><strong className="text-white">Twitch e Kick:</strong> Utilize a conexão OAuth integrada e segura para autorizar com suas credenciais.</p>
                     </div>
                   </details>
                 </div>
