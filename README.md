@@ -4,6 +4,9 @@
 
 **Stream Control** é uma aplicação web full-stack, moderna e de alta performance, desenvolvida para ajudar streamers das principais plataformas (**Twitch**, **YouTube**, **Kick**, **TikTok** e **X/Twitter**) a gerenciarem suas transmissões de forma integrada. O projeto centraliza o monitoramento de estatísticas em tempo real, unifica os chats de todas as lives em um painel interativo e inteligente, e oferece um controle remoto do seu **OBS Studio** via WebSockets diretamente da sua tela secundária ou celular.
 
+### 💡 Proposta Inicial & Filosofia do Projeto
+A proposta central deste aplicativo é ser uma ferramenta de **suporte acessível para streamers com recursos limitados**. Streamers iniciantes ou que não possuem setups com múltiplos monitores caros ou dispositivos físicos como o Stream Deck podem utilizar o Stream Control para obter **portabilidade extrema e facilidade**. Ele transforma qualquer celular ou tablet antigo de forma gratuita em um painel de controle dinâmico e chat unificado, tirando a barreira de entrada e potencializando a facilidade da transmissão.
+
 Este é um **projeto público e de código aberto**. Contribuições, reporte de problemas (Issues) e pull requests são extremamente bem-vividas e apreciadas!
 
 ---
@@ -122,12 +125,16 @@ Isso roda o servidor em modo de alta performance servindo os assets compilados d
 
 ## ⚠️ Integração técnica com a Kick.com & Contribuições
 
-Atualmente, o projeto utiliza simulações para teste da plataforma **Kick.com** devido a limitações de acesso aos seus servidores de API.
+> 🛑 **Aviso Importante: A integração real com a Kick.com NÃO está funcionando de forma 100% operacional no fluxo de produção convencional pelas fortes restrições técnicas da própria plataforma.**
+
+Embora as rotas e toda a estrutura para o fluxo OAuth oficial (`id.kick.com`) estejam implementadas e preparadas utilizando `KICK_CLIENT_ID` e `KICK_CLIENT_SECRET`, na prática o acesso frequentemente falha ou é bloqueado.
 
 ### O Desafio com a Kick
-A API oficial da Kick (`https://id.kick.com` / `https://api.kick.com`) utiliza fortes políticas de proteção contra DDoS e proteção via Cloudflare (como JS Challenges e bloqueio por TLS Fingerprint). Ao tentar trocar o código de autorização utilizando bibliotecas HTTP comuns no Node.js (Axios, Fetch, etc.), a conexão direta é rejeitada pelo firewall da Cloudflare.
+A API oficial da Kick (`https://id.kick.com` / `https://api.kick.com`) implementa regras extremas de mitigação de DDoS e segurança via Cloudflare (incluindo desafios JavaScript e bloqueio de TLS Fingerprint). Ao tentar trocar o código de autorização utilizando bibliotecas HTTP de servidor convencionais (como Axios/Fetch) em ambientes autosserviço, as requisições são ativamente rejeitadas. Além disso, a documentação e os escopos do OAuth da Kick estão restritos a parceiros seletos e homologados manualmente por eles.
 
-Sinta-se livre para propor, testar ou implementar qualquer solução técnica que contorne este problema (por exemplo, proxy reverso personalizado, emulação de TLS client-hello, etc.) ou sugerir novos fluxos alternativos para a plataforma.
+Por esse motivo, **a integração de login oficial com a Kick não funciona perfeitamente como deveria** no ambiente de implantação atual.
+
+Sinta-se inteiramente livre para propor, testar ou implementar qualquer solução técnica que contorne este problema ou propor novas alternativas (como fluxo de emulação de conexão, uso de credenciais locais de chat, etc.) conforme desejar e achar melhor!
 
 ### 🚀 Novas Funcionalidades e Caminhos
 Como este é um projeto público e de código aberto, não há um caminho previamente engessado ou limitado. Cada desenvolvedor ou streamer pode seguir a direção que desejar e contribuir com o que achar mais valioso! Sinta-se totalmente livre para criar e propor novas ideias, tais como:

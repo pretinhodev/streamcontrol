@@ -228,16 +228,14 @@ async function startServer() {
     const protocol = req.protocol === 'http' && host?.includes('localhost') ? 'http' : 'https';
     const baseUrl = process.env.APP_URL || `${protocol}://${host}`;
     
-    // Se o cliente configurou um KICK_CLIENT_ID real (não nulo e diferente de temporário)
-    if (clientId && clientId !== "kick_mock_client_id_temp" && clientId.trim() !== "") {
-      const redirectUri = `${baseUrl}/auth/kick/callback`;
-      const scopes = "user.read channel.read"; // escopos padrão da API de parceiros do id.kick.com
-      const url = `https://id.kick.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}`;
-      return res.json({ url });
+    if (!clientId || clientId === "kick_mock_client_id_temp" || clientId.trim() === "") {
+      return res.status(400).json({ error: "KICK_CLIENT_ID não configurado. Adicione KICK_CLIENT_ID e KICK_CLIENT_SECRET no menu de Secrets para habilitar a conexão real com a Kick." });
     }
-    
-    // Fallback de Sandbox/Simulação quando as chaves de produção ainda não estão ativas
-    res.json({ url: `${baseUrl}/auth/kick?client_id=kick_simulated_client_id` });
+
+    const redirectUri = `${baseUrl}/auth/kick/callback`;
+    const scopes = "user.read channel.read"; // Escopos oficiais da API de parceiros do id.kick.com
+    const url = `https://id.kick.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}`;
+    res.json({ url });
   });
 
   // Callback oficial para id.kick.com
@@ -251,6 +249,13 @@ async function startServer() {
     const redirectUri = `${baseUrl}/auth/kick/callback`;
 
     try {
+      if (!code) {
+        throw new Error("Código de autorização não fornecido pela URL de callback do id.kick.com.");
+      }
+      if (!clientId || clientId === "kick_mock_client_id_temp" || clientId.trim() === "") {
+        throw new Error("KICK_CLIENT_ID e KICK_CLIENT_SECRET precisam estar devidamente configurados nas variáveis de ambiente.");
+      }
+
       const tokenParams = new URLSearchParams();
       tokenParams.append("client_id", clientId || "");
       tokenParams.append("client_secret", clientSecret || "");
@@ -325,127 +330,6 @@ async function startServer() {
         </html>
       `);
     }
-  });
-
-  app.get("/auth/kick", (req, res) => {
-    const clientId = (req.query.client_id as string) || "Não configurado";
-    res.send(`
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Conectar Kick ao Stream Control</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700;800;900&display=swap" rel="stylesheet">
-        <style>
-          body { font-family: 'Inter', sans-serif; background-color: #0b0e11; }
-        </style>
-      </head>
-      <body class="flex flex-col items-center justify-center min-h-screen text-neutral-200 px-4 py-8">
-        <!-- Banner Informativo da Solução id.kick.com -->
-        <div class="w-full max-w-md mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] p-3.5 rounded-2xl flex flex-col gap-1 shadow-lg leading-relaxed">
-          <div class="font-bold flex items-center gap-1 text-[12px]">
-            <span>⚡ Modo Sandbox (id.kick.com)</span>
-          </div>
-          <p class="opacity-80">KICK_CLIENT_ID não configurado nos Secrets do AI Studio. O painel iniciou a simulação do id.kick.com de forma totalmente interativa para você validar os fluxos em tempo de desenvolvimento!</p>
-        </div>
-
-        <div class="w-full max-w-md bg-[#191b1f] border border-neutral-800 rounded-[32px] p-7 shadow-2xl relative overflow-hidden">
-          <div class="absolute -top-12 -right-12 w-36 h-36 bg-[#53FC18]/10 rounded-full blur-3xl"></div>
-          
-          <div class="flex items-center justify-between mb-8">
-            <div class="flex items-center gap-1.5">
-              <span class="text-white font-black text-xl tracking-tight">Stream<span class="text-[#53FC18]"> Control</span></span>
-              <span class="bg-[#24262b] text-[9px] font-mono font-bold text-neutral-400 px-1.5 py-0.5 rounded-full">v2_api</span>
-            </div>
-            <span class="bg-[#53FC18]/10 text-[#53FC18] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-[#53FC18]/20">Seguro</span>
-          </div>
-
-          <div class="flex flex-col items-center text-center space-y-3 mb-6">
-            <div class="w-16 h-16 rounded-2xl bg-[#5cff27]/10 border border-[#53FC18]/30 flex items-center justify-center text-[#53FC18] text-4xl font-extrabold shadow-lg shadow-[#53FC18]/5">
-              <span>K</span>
-            </div>
-            <h2 class="text-lg font-black text-white">Adicionar Canal do Kick</h2>
-            <div class="text-[9px] font-mono text-neutral-400 bg-neutral-900 border border-neutral-800/60 px-3 py-1.5 rounded-lg max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">
-              Client ID: <span class="text-[#53FC18]">${clientId}</span>
-            </div>
-            <p class="text-xs text-neutral-400 leading-relaxed max-w-md">
-              Autorize o <strong>Stream Control Mobile</strong> a gerenciar alertas e integrar o feed de eventos de stream das suas transmissões.
-            </p>
-          </div>
-
-          <div class="bg-[#111317] border border-neutral-800/45 rounded-2xl p-4.5 mb-6 space-y-3.5">
-            <span class="text-[9px] font-black tracking-widest text-[#534e4e] uppercase block">Permissões Solicitadas pelo Applet:</span>
-            <div class="space-y-2.5">
-              <div class="flex items-start gap-2.5 text-xs text-neutral-300">
-                <span class="text-[#53FC18] mt-0.5 font-bold">✓</span>
-                <p>Receber alertas de <strong>Seguidores & Subs</strong> instantâneos</p>
-              </div>
-              <div class="flex items-start gap-2.5 text-xs text-neutral-300">
-                <span class="text-[#53FC18] mt-0.5 font-bold">✓</span>
-                <p>Incorporar visualizadores totais e status da live</p>
-              </div>
-              <div class="flex items-start gap-2.5 text-xs text-neutral-300">
-                <span class="text-[#53FC18] mt-0.5 font-bold">✓</span>
-                <p>Acesso de gravação para controle simultâneo no OBS</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div class="space-y-1.5">
-              <label class="text-[10px] font-black uppercase tracking-wider text-neutral-400 block">Nome do Canal do Kick</label>
-              <input 
-                id="username" 
-                type="text" 
-                placeholder="ex: alanzoka" 
-                class="w-full bg-[#0d0f12] border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-[#53FC18] focus:ring-1 focus:ring-[#53FC18]/20 transition-all font-mono"
-              />
-            </div>
-
-            <div class="space-y-1.5">
-              <label class="text-[10px] font-black uppercase tracking-wider text-neutral-400 block">Nome de Exibição / Apelido</label>
-              <input 
-                id="displayName" 
-                type="text" 
-                placeholder="ex: Alan Kick Live" 
-                class="w-full bg-[#0d0f12] border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-[#53FC18] focus:ring-1 focus:ring-[#53FC18]/20 transition-all"
-              />
-            </div>
-
-            <div class="flex gap-3 pt-3">
-              <button onclick="window.close()" class="w-1/2 bg-[#222] hover:bg-neutral-800 text-neutral-400 py-3.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer">Cancelar</button>
-              <button onclick="authorize()" class="w-1/2 bg-[#53FC18] hover:bg-[#4ddf15] text-[#05050A] py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-[#53FC18]/10 cursor-pointer">Autorizar</button>
-            </div>
-          </div>
-        </div>
-
-        <script>
-          function authorize() {
-            var rawUser = document.getElementById('username').value.trim();
-            if (!rawUser) {
-              alert('Por favor, informe seu nome de usuário do Kick.');
-              return;
-            }
-            var disp = document.getElementById('displayName').value.trim() || rawUser;
-            
-            window.opener.postMessage({
-              type: 'KICK_AUTH_SUCCESS',
-              user: {
-                id: 'kick_' + Math.random().toString(36).substr(2, 9),
-                username: rawUser,
-                display_name: disp,
-                profile_image_url: 'https://api.dicebear.com/7.x/identicon/svg?seed=' + rawUser
-              }
-            }, '*');
-            
-            window.close();
-          }
-        </script>
-      </body>
-      </html>
-    `);
   });
 
   // --- TikTok OAuth Mock Routes ---
